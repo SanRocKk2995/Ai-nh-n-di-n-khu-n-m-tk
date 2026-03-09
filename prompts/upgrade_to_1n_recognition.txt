@@ -1,0 +1,268 @@
+You are Codex CLI - Implementation Worker for Face Recognition System Upgrade
+
+TASK: Upgrade current 1:1 face verification system to 1:N face recognition with FAISS
+
+═══════════════════════════════════════════════════════════════════════════════
+CURRENT SYSTEM ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
+
+Current structure:
+- app.py: Flask app for 1:1 comparison
+- modules/face_detector.py: Face detection with InsightFace
+- modules/face_embedder.py: Get 512-dim embeddings
+- modules/comparator.py: Cosine similarity comparison
+- modules/logger.py: CSV logging
+- modules/utils.py: File helpers
+
+Current features: Upload 2 images → Compare → MATCH/NOT MATCH
+
+═══════════════════════════════════════════════════════════════════════════════
+UPGRADE REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+Transform to 1:N recognition system with:
+
+1. FAISS index for fast similarity search
+2. Face database (register people)
+3. Realtime webcam recognition
+4. Optimized pipeline for speed
+
+Required libraries (add to requirements.txt if missing):
+- faiss-cpu
+- prettytable
+- tqdm
+
+═══════════════════════════════════════════════════════════════════════════════
+NEW PROJECT STRUCTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+Keep backward compatibility with 1:1 verification while adding new features.
+
+Create these new directories/files:
+
+project/
+├── app.py                      # UPDATE: Add recognition endpoints
+├── config.py                   # NEW: Configuration constants
+├── webcam_recognize.py         # NEW: Demo script for realtime
+├── requirements.txt            # UPDATE: Add faiss-cpu, prettytable, tqdm
+├── README.md                   # UPDATE: Document new features
+│
+├── models/                     # NEW directory
+│   ├── __init__.py
+│   ├── detector.py             # Face detection model wrapper
+│   └── recognizer.py           # Recognition model wrapper
+│
+├── services/                   # NEW directory
+│   ├── __init__.py
+│   ├── face_service.py         # High-level face operations
+│   ├── embedding_service.py    # Embedding generation & management
+│   └── search_service.py       # FAISS search operations
+│
+├── database/                   # NEW directory
+│   ├── __init__.py
+│   └── face_db.py              # Face database management
+│
+├── utils/                      # REFACTOR from modules/
+│   ├── __init__.py
+│   ├── image_utils.py          # Image processing utilities
+│   └── logger.py               # MOVE from modules/
+│
+├── data/                       # NEW directory
+│   ├── faces/                  # Registered face images
+│   │   └── person_id_1/
+│   │       ├── face_1.jpg
+│   │       └── face_2.jpg
+│   └── embeddings/             # Saved embeddings
+│       └── embeddings.pkl
+│
+├── index/                      # NEW directory
+│   └── faiss.index             # FAISS index file
+│
+└── modules/                    # KEEP for backward compatibility
+    ├── face_detector.py        # Keep existing
+    ├── face_embedder.py        # Keep existing
+    ├── comparator.py           # Keep existing
+    └── utils.py                # Keep existing
+
+═══════════════════════════════════════════════════════════════════════════════
+IMPLEMENTATION PLAN
+═══════════════════════════════════════════════════════════════════════════════
+
+Phase 1: Configuration & Models
+────────────────────────────────
+1. Create config.py with:
+   - FACE_DETECTION_THRESHOLD = 0.5
+   - FACE_SIZE_MIN = 50
+   - RECOGNITION_THRESHOLD = 0.35
+   - EMBEDDING_DIM = 512
+   - FAISS_INDEX_PATH = "index/faiss.index"
+   - DATA_ROOT = "data"
+   - FACES_DIR = "data/faces"
+   - EMBEDDINGS_FILE = "data/embeddings/embeddings.pkl"
+
+2. Create models/detector.py:
+   - Wrap InsightFace SCRFD detector
+   - Quality check (size, confidence)
+   - Face alignment by landmarks
+
+3. Create models/recognizer.py:
+   - Wrap ArcFace model for embeddings
+   - Normalize embeddings (L2 norm)
+
+Phase 2: Services Layer
+───────────────────────
+4. Create services/embedding_service.py:
+   - generate_embedding(image) → vector
+   - batch_generate_embeddings(images) → vectors
+   - save_embeddings(person_id, embeddings)
+   - load_all_embeddings() → dict
+
+5. Create services/search_service.py:
+   - build_faiss_index(embeddings) → index
+   - load_faiss_index() → index
+   - search_similar(embedding, k=5) → [(person_id, distance)]
+   - save_index(index)
+
+6. Create services/face_service.py:
+   - register_person(person_id, name, images)
+   - recognize_face(image) → {person_id, name, score}
+   - get_all_registered_people() → list
+
+Phase 3: Database
+─────────────────
+7. Create database/face_db.py:
+   - Store person metadata (id, name, embedding_paths)
+   - CRUD operations
+   - Use JSON or pickle for simple storage
+
+Phase 4: Flask API
+──────────────────
+8. Update app.py - ADD new endpoints:
+   
+   POST /api/register
+   Body: {
+     "person_id": "john_001",
+     "name": "John Doe",
+     "images": ["base64_img1", "base64_img2", ...]
+   }
+   Response: {"status": "success", "registered": 5}
+   
+   POST /api/recognize
+   Body: {
+     "image": "base64_image"
+   }
+   Response: {
+     "person_id": "john_001",
+     "name": "John Doe",
+     "score": 0.82,
+     "processing_time_ms": 45
+   }
+   
+   GET /api/database/list
+   Response: {
+     "people": [
+       {"person_id": "john_001", "name": "John Doe", "num_embeddings": 5},
+       ...
+     ],
+     "total": 10
+   }
+   
+   DELETE /api/database/person/<person_id>
+   
+   GET /api/health
+   Response: {
+     "status": "ok",
+     "faiss_index_loaded": true,
+     "num_registered": 10
+   }
+
+   KEEP /verify endpoint for backward compatibility
+
+Phase 5: Webcam Demo
+────────────────────
+9. Create webcam_recognize.py:
+   - Open webcam with cv2
+   - Detect faces each frame
+   - Only recognize when:
+     * New face appears
+     * Face quality good
+     * Not recognized recently (cache 3 seconds)
+   - Draw bounding box, name, score
+   - Display FPS
+   - Press 'q' to quit
+
+Phase 6: Utils & Documentation
+───────────────────────────────
+10. Create utils/image_utils.py:
+    - decode_base64_image(base64_str) → np.array
+    - encode_image_base64(image) → str
+    - resize_image(image, max_size)
+    - is_image_valid(image_path)
+
+11. Update requirements.txt:
+    - Add: faiss-cpu, prettytable, tqdm
+
+12. Update README.md:
+    - Document new 1:N recognition features
+    - API examples for register/recognize
+    - Webcam demo usage
+    - Keep old 1:1 verification section
+
+═══════════════════════════════════════════════════════════════════════════════
+OPTIMIZATION REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. FAISS IndexFlatIP for fast inner product search
+2. Top-k search (k=5) then re-rank by cosine similarity
+3. Embedding normalization before indexing
+4. Cache track_id in webcam to avoid redundant recognition
+5. Only process frames when face quality is good
+6. Batch embedding generation when registering multiple faces
+
+═══════════════════════════════════════════════════════════════════════════════
+CODE GUIDELINES
+═══════════════════════════════════════════════════════════════════════════════
+
+- Clean, modular code with clear separation of concerns
+- Comprehensive docstrings for all functions/classes
+- Type hints where appropriate
+- Error handling with meaningful messages
+- Logging with timestamps
+- Comments for complex logic
+- Follow PEP 8 style guide
+
+═══════════════════════════════════════════════════════════════════════════════
+TESTING STRATEGY
+═══════════════════════════════════════════════════════════════════════════════
+
+After implementation, create test scripts:
+1. test_register.py - Test registration with sample faces
+2. test_recognize.py - Test recognition accuracy
+3. test_faiss.py - Verify FAISS index build/search
+
+═══════════════════════════════════════════════════════════════════════════════
+EXECUTION STEPS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Read all existing modules to understand current implementation
+2. Create new directory structure
+3. Implement Phase 1-6 in order
+4. Test each component
+5. Update documentation
+6. Create summary report
+
+═══════════════════════════════════════════════════════════════════════════════
+EXPECTED OUTPUT
+═══════════════════════════════════════════════════════════════════════════════
+
+Provide implementation summary:
+1. List of created files
+2. List of modified files
+3. New features added
+4. Breaking changes (if any)
+5. How to test the new system
+6. Next steps or remaining tasks
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Begin implementation now. Focus on clean, working code. Ask clarifying questions if requirements are ambiguous.

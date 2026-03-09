@@ -63,6 +63,12 @@
               <span class="upload-sub">Person A</span>
             </div>
             <img id="preview1" class="preview-img hidden" alt="Preview 1" />
+            <div class="image-status hidden" id="status1">
+              <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span class="status-text">Processed ✓</span>
+            </div>
           </label>
           <p class="card-label">Image 1 — Person A</p>
         </div>
@@ -76,17 +82,17 @@
 
         <!-- Image 2 -->
         <div class="upload-card" id="card2">
-          <input type="file" id="image2" name="image2" accept="image/*" hidden />
-          <label for="image2" class="upload-label" id="label2">
+          <input type="file" id="image2" name="image2" accept="image/*" hidden disabled />
+          <label for="image2" class="upload-label disabled" id="label2">
             <div class="upload-placeholder" id="placeholder2">
-              <div class="upload-icon">
+              <div class="upload-icon" style="opacity: 0.3;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 5.75 5.75 0 0 1 6.097 6.853A4.5 4.5 0 0 1 17.25 19.5H6.75z"/>
                 </svg>
               </div>
-              <p class="upload-hint">Click to upload</p>
-              <span class="upload-sub">Person B</span>
+              <p class="upload-hint" style="opacity: 0.5;">Upload Image 1 first</p>
+              <span class="upload-sub" style="opacity: 0.5;">Person B</span>
             </div>
             <img id="preview2" class="preview-img hidden" alt="Preview 2" />
           </label>
@@ -98,6 +104,32 @@
       <details class="advanced-panel">
         <summary>Advanced Options</summary>
         <div class="advanced-grid">
+          <div class="form-group">
+            <label for="threshold">Similarity Threshold</label>
+            <input type="number" id="threshold" name="threshold"
+                   value="0.25" min="0" max="1" step="0.01" />
+            <small>Cosine similarity threshold (0–1). Lower = more lenient.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="multi_face">Multiple Faces</label>
+            <select id="multi_face" name="multi_face">
+              <option value="largest">Use largest face</option>
+              <option value="error">Error if >1 face</option>
+            </select>
+            <small>What to do when multiple faces detected.</small>
+          </div>
+        </div>
+      </details>
+
+      <div class="workflow-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4M12 8h.01"></path>
+        </svg>
+        <span style="margin-left: 8px;">Upload images one by one. Processing happens automatically.</span>
+      </div>
+    </form>
           <label class="opt-label">
             Threshold
             <input type="number" id="threshold" name="threshold" value="0.25" min="0" max="1" step="0.01" />
@@ -113,18 +145,13 @@
         </div>
       </details>
 
-      <!-- Submit -->
-      <button type="submit" class="btn-verify" id="btnVerify" disabled>
-        <span class="btn-text">Verify Faces</span>
-        <span class="btn-spinner hidden" id="btnSpinner">
-          <svg class="spinner-svg" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
-                    fill="none" stroke-dasharray="60" stroke-dashoffset="20"
-                    stroke-linecap="round"/>
-          </svg>
-          Processing…
-        </span>
-      </button>
+      <div class="workflow-hint" style="text-align: center; padding: 15px; background: rgba(129, 140, 248, 0.05); border-radius: 12px; color: #94a3b8; font-size: 14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4M12 8h.01"></path>
+        </svg>
+        <span style="margin-left: 8px;">Upload images one by one. Processing happens automatically.</span>
+      </div>
     </form>
 
     <!-- Result panel -->
@@ -161,65 +188,209 @@
   </main>
 
   <script>
-    // ── Image preview ───────────────────────────────────────────
-    function setupPreview(inputId, previewId, placeholderId, cardId) {
-      const input = document.getElementById(inputId);
-      const preview = document.getElementById(previewId);
-      const placeholder = document.getElementById(placeholderId);
-      const card = document.getElementById(cardId);
+    // ── State management ───────────────────────────────────────
+    let state = {
+      image1Processed: false,
+      isProcessing: false
+    };
 
-      input.addEventListener("change", () => {
-        const file = input.files[0];
-        if (!file) return;
-        const url = URL.createObjectURL(file);
-        preview.src = url;
-        preview.classList.remove("hidden");
-        placeholder.classList.add("hidden");
-        card.classList.add("has-image");
-        checkEnableButton();
-      });
-    }
+    // ── Image 1 preview and auto-process ──────────────────────
+    const input1 = document.getElementById("image1");
+    const preview1 = document.getElementById("preview1");
+    const placeholder1 = document.getElementById("placeholder1");
+    const status1 = document.getElementById("status1");
+    const card1 = document.getElementById("card1");
+    
+    const input2 = document.getElementById("image2");
+    const preview2 = document.getElementById("preview2");
+    const placeholder2 = document.getElementById("placeholder2");
+    const card2 = document.getElementById("card2");
+    const label2 = document.getElementById("label2");
 
-    setupPreview("image1", "preview1", "placeholder1", "card1");
-    setupPreview("image2", "preview2", "placeholder2", "card2");
-
-    function checkEnableButton() {
-      const f1 = document.getElementById("image1").files[0];
-      const f2 = document.getElementById("image2").files[0];
-      document.getElementById("btnVerify").disabled = !(f1 && f2);
-    }
-
-    // ── Form submit ─────────────────────────────────────────────
-    document.getElementById("verifyForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const form = e.target;
-
-      // Show spinner, hide results
-      document.getElementById("btnText") && (document.getElementById("btnText").classList.add("hidden"));
-      document.querySelector(".btn-text").classList.add("hidden");
-      document.getElementById("btnSpinner").classList.remove("hidden");
-      document.getElementById("btnVerify").disabled = true;
+    input1.addEventListener("change", async () => {
+      const file = input1.files[0];
+      if (!file) return;
+      
+      // Show preview
+      const url = URL.createObjectURL(file);
+      preview1.src = url;
+      preview1.classList.remove("hidden");
+      placeholder1.classList.add("hidden");
+      status1.classList.add("hidden");
+      card1.classList.add("has-image");
+      
+      // Hide previous results
       document.getElementById("resultPanel").classList.add("hidden");
       document.getElementById("errorPanel").classList.add("hidden");
+      
+      // Auto-process image 1
+      await processFirstImage(file);
+    });
 
+    async function processFirstImage(file) {
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+      
       try {
-        const data = new FormData(form);
-        const resp = await fetch("/verify", { method: "POST", body: data });
+        const data = new FormData();
+        data.append("image", file);
+        
+        // Get threshold from form if exists
+        const threshold = document.getElementById("threshold")?.value || "0.25";
+        const multiFace = document.getElementById("multi_face")?.value || "largest";
+        data.append("threshold", threshold);
+        data.append("multi_face", multiFace);
+        
+        showProcessingState("Processing Image 1...");
+        
+        const resp = await fetch("/process_first", { method: "POST", body: data });
         const json = await resp.json();
-
+        
         if (json.error) {
+          showError(json.error);
+          resetImage1();
+        } else {
+          // Show success
+          status1.classList.remove("hidden");
+          state.image1Processed = true;
+          
+          // Enable image 2
+          input2.disabled = false;
+          label2.classList.remove("disabled");
+          placeholder2.querySelector(".upload-hint").textContent = "Click to upload";
+          placeholder2.querySelector(".upload-hint").style.opacity = "1";
+          placeholder2.querySelector(".upload-sub").style.opacity = "1";
+          placeholder2.querySelector(".upload-icon").style.opacity = "1";
+          
+          showInfo(json.message || "✓ Image 1 ready. Now upload Image 2.");
+        }
+      } catch (err) {
+        showError("Network error: " + err.message);
+        resetImage1();
+      } finally {
+        state.isProcessing = false;
+        hideProcessingState();
+      }
+    }
+
+    // ── Image 2 preview and auto-compare ──────────────────────
+    input2.addEventListener("change", async () => {
+      const file = input2.files[0];
+      if (!file) return;
+      
+      if (!state.image1Processed) {
+        showError("Please upload Image 1 first.");
+        return;
+      }
+      
+      // Show preview
+      const url = URL.createObjectURL(file);
+      preview2.src = url;
+      preview2.classList.remove("hidden");
+      placeholder2.classList.add("hidden");
+      card2.classList.add("has-image");
+      
+      // Auto-compare
+      await compareSecondImage(file);
+    });
+
+    async function compareSecondImage(file) {
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+      
+      try {
+        const data = new FormData();
+        data.append("image", file);
+        
+        showProcessingState("Comparing faces...");
+        
+        const resp = await fetch("/compare_second", { method: "POST", body: data });
+        const json = await resp.json();
+        
+        if (json.error) {
+          if (json.needs_image1) {
+            resetAll();
+          }
           showError(json.error);
         } else {
           showResult(json);
+          // Reset for next comparison
+          setTimeout(() => {
+            state.image1Processed = false;
+            input2.value = '';
+            preview2.classList.add("hidden");
+            placeholder2.classList.remove("hidden");
+            card2.classList.remove("has-image");
+            input2.disabled = true;
+            label2.classList.add("disabled");
+            placeholder2.querySelector(".upload-hint").textContent = "Upload Image 1 first";
+            placeholder2.querySelector(".upload-hint").style.opacity = "0.5";
+            status1.classList.add("hidden");
+          }, 5000); // Reset after 5 seconds
         }
       } catch (err) {
         showError("Network error: " + err.message);
       } finally {
-        document.querySelector(".btn-text").classList.remove("hidden");
-        document.getElementById("btnSpinner").classList.add("hidden");
-        document.getElementById("btnVerify").disabled = false;
+        state.isProcessing = false;
+        hideProcessingState();
       }
-    });
+    }
+
+    // ── Utility functions ──────────────────────────────────────
+    function resetImage1() {
+      input1.value = '';
+      preview1.classList.add("hidden");
+      placeholder1.classList.remove("hidden");
+      status1.classList.add("hidden");
+      card1.classList.remove("has-image");
+      state.image1Processed = false;
+    }
+
+    function resetAll() {
+      resetImage1();
+      input2.value = '';
+      preview2.classList.add("hidden");
+      placeholder2.classList.remove("hidden");
+      card2.classList.remove("has-image");
+      input2.disabled = true;
+      label2.classList.add("disabled");
+    }
+
+    function showProcessingState(message) {
+      const info = document.createElement('div');
+      info.id = 'processingInfo';
+      info.style.cssText = 'text-align: center; padding: 15px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; margin: 20px 0; color: #818cf8; font-weight: 500;';
+      info.innerHTML = `
+        <svg style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; animation: spin 1s linear infinite;" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="60" stroke-dashoffset="20" stroke-linecap="round"/>
+        </svg>
+        <span style="margin-left: 10px;">${message}</span>
+      `;
+      
+      const form = document.getElementById('verifyForm');
+      const existing = document.getElementById('processingInfo');
+      if (existing) existing.remove();
+      form.appendChild(info);
+    }
+
+    function hideProcessingState() {
+      const info = document.getElementById('processingInfo');
+      if (info) info.remove();
+    }
+
+    function showInfo(message) {
+      const info = document.createElement('div');
+      info.style.cssText = 'text-align: center; padding: 15px; background: rgba(34, 197, 94, 0.1); border-radius: 12px; margin: 20px 0; color: #22c55e; font-weight: 500;';
+      info.textContent = message;
+      
+      const form = document.getElementById('verifyForm');
+      const existing = document.getElementById('infoMessage');
+      if (existing) existing.remove();
+      info.id = 'infoMessage';
+      form.appendChild(info);
+      
+      setTimeout(() => info.remove(), 3000);
+    }
 
     function showResult(data) {
       const panel = document.getElementById("resultPanel");
@@ -256,6 +427,11 @@
       document.getElementById("errorPanel").classList.remove("hidden");
       document.getElementById("errorPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+
+    // Add spin animation
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
   </script>
 </body>
 </html>

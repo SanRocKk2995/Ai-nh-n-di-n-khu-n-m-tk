@@ -43,11 +43,11 @@ def normalize_lighting(image_bgr: np.ndarray) -> np.ndarray:
     # Split channels
     l, a, b = cv2.split(lab)
     
-    # Apply very gentle CLAHE - reduced intensity
-    clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
+    # Apply moderate CLAHE for better normalization
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
     l_equalized = clahe.apply(l)
     
-    # Blend with original (50% original, 50% equalized) to preserve detail
+    # Blend with original (30% original, 70% equalized) for stronger effect
     l_blended = cv2.addWeighted(l, 0.5, l_equalized, 0.5, 0)
     
     # Merge channels back
@@ -99,7 +99,7 @@ def align_face(image_bgr: np.ndarray, landmarks: np.ndarray) -> np.ndarray:
     return aligned
 
 
-def get_embedding(image_bgr: np.ndarray) -> np.ndarray:
+def get_embedding(image_bgr: np.ndarray, fast_mode: bool = False) -> np.ndarray:
     """
     Generate a normalised face embedding from a cropped face image.
 
@@ -109,6 +109,9 @@ def get_embedding(image_bgr: np.ndarray) -> np.ndarray:
         BGR image (e.g. from cv2.imread or the output of face_detector).
         Should already be cropped to a single face, but detection is run
         again to extract the embedding vector properly.
+    fast_mode : bool
+        If True, skip some preprocessing steps for faster embedding.
+        Use for image 2 to get results quickly. Default False.
 
     Returns
     -------

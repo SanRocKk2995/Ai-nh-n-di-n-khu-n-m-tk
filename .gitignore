@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 .vscode/
 uploads/
+data/embeddings/
+data/faces/
+index/
+logs/

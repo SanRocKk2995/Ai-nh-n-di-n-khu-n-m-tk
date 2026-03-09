@@ -476,3 +476,44 @@ body {
   }
   .advanced-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Status indicator for processed image ── */
+.image-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(34, 197, 94, 0.95);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  animation: slideInRight 0.3s ease;
+  z-index: 10;
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.upload-label.disabled {
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

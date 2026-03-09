@@ -18,25 +18,50 @@ def normalize_lighting(image_bgr: np.ndarray) -> np.ndarray:
     lab = cv2.merge([l, a, b])
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
-# Shared model instance (lazy-loaded once)
+# Shared model instances (lazy-loaded once)
 _app = None
+_app_fast = None
 
 
-def _get_app():
-    global _app
-    if _app is None:
-        _app = FaceAnalysis(
-            name="buffalo_l",
-            root="~/.insightface"
-        )
-        # Lower detection threshold for better sensitivity (default is 0.5)
-        _app.prepare(ctx_id=-1, det_size=(640, 640), det_thresh=0.3)
-    return _app
+def _get_app(fast_mode=False):
+    """Get FaceAnalysis app. If fast_mode=True, use smaller detection size for speed."""
+    global _app, _app_fast
+    
+    if fast_mode:
+        if _app_fast is None:
+            _app_fast = FaceAnalysis(
+                name="buffalo_l",
+                root="~/.insightface"
+            )
+            # FAST MODE: Smaller size (320x320) for 4x faster detection
+            # Lower threshold (0.35) for faster face finding
+            _app_fast.prepare(ctx_id=-1, det_size=(320, 320), det_thresh=0.35)
+        return _app_fast
+    else:
+        if _app is None:
+            _app = FaceAnalysis(
+                name="buffalo_l",
+                root="~/.insightface"
+            )
+            # NORMAL MODE: Higher quality (640x640) for accurate detection
+            # Higher threshold (0.5) ensures only high-confidence detections
+            _app.prepare(ctx_id=-1, det_size=(640, 640), det_thresh=0.5)
+        return _app
 
 
-def detect_and_crop(image_path: str, multi_face: str = "error"):
+def detect_and_crop(image_path: str, multi_face: str = "error", fast_mode: bool = False):
     """
     Detect a face in image_path and return the cropped face as a numpy array.
+    
+    Parameters
+    ----------
+    image_path : str
+        Path to the image file
+    multi_face : str
+        How to handle multiple faces: "error" or "largest"
+    fast_mode : bool
+        If True, use faster detection (320x320) with relaxed quality checks.
+        Use for image 2 to get results quickly. Default False.
 
     Parameters
     ----------
@@ -109,16 +134,46 @@ def detect_and_crop(image_path: str, multi_face: str = "error"):
     if len(faces) == 0:
         raise ValueError("No face detected in the image.")
 
-    # Filter out very small faces (likely background/false positives)
-    if len(faces) > 1:
-        # Calculate face sizes
-        face_sizes = [(f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]) for f in faces]
-        max_size = max(face_sizes)
+    # ═══════════════════════════════════════════════════════════
+    # QUALITY FILTER - Improve accuracy by filtering low-quality faces
+    # Skip quality checks in fast_mode for speed (image 2)
+    # ═══════════════════════════════════════════════════════════════════
+    if not fast_mode:
+        MIN_FACE_SIZE = 80  # Minimum 80x80 pixels for good embedding quality
+        MIN_CONFIDENCE = 0.75  # High confidence threshold (increased from default)
         
-        # Keep only faces that are at least 30% of the largest face
-        # This filters out small background faces
-        filtered_faces = [f for f, size in zip(faces, face_sizes) if size >= max_size * 0.3]
-        faces = filtered_faces
+        quality_faces = []
+        for face in faces:
+            bbox = face.bbox.astype(int)
+            x1, y1, x2, y2 = bbox
+            width = x2 - x1
+            height = y2 - y1
+            
+            # Filter 1: Size check - too small faces have poor embedding quality
+            if width < MIN_FACE_SIZE or height < MIN_FACE_SIZE:
+                continue
+            
+            # Filter 2: Confidence check - only keep high-confidence detections
+            confidence = getattr(face, 'det_score', 1.0)
+            if confidence < MIN_CONFIDENCE:
+                continue
+            
+            # Filter 3: Aspect ratio check - skip distorted faces
+            aspect_ratio = width / float(height)
+            if aspect_ratio < 0.6 or aspect_ratio > 1.7:  # Normal face is ~0.75-1.3
+                continue
+            
+            quality_faces.append(face)
+        
+        if len(quality_faces) == 0:
+            raise ValueError(
+                f"No high-quality face detected. "
+                f"Found {len(faces)} face(s), but all failed quality checks "
+                f"(min size: {MIN_FACE_SIZE}px, min confidence: {MIN_CONFIDENCE})."
+            )
+        
+        faces = quality_faces
+    # ═══════════════════════════════════════════════════════════
 
     if len(faces) > 1:
         if multi_face == "error":

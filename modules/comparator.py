@@ -7,8 +7,9 @@ Compare two face embeddings and decide MATCH / NOT MATCH.
 import numpy as np
 
 # Default cosine similarity threshold
-# Lower for better recall with challenging photos (dark/angled)
-DEFAULT_THRESHOLD = 0.25
+# Higher threshold for better precision and accuracy
+# 0.40 provides good balance between precision and recall
+DEFAULT_THRESHOLD = 0.40
 
 
 def cosine_similarity(emb1: np.ndarray, emb2: np.ndarray) -> float:

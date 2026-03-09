@@ -1,0 +1,16 @@
+Fix the threshold mismatch between app.py and README.md
+
+Task:
+The README.md states the default threshold is 0.40, but in app.py the default threshold is 0.25.
+This creates confusion and inconsistent documentation.
+
+Required action:
+1. Read the current threshold value in modules/comparator.py
+2. Check what the actual default is being used
+3. Update README.md to match the actual implementation (0.25)
+4. Do NOT change the code - only fix the documentation
+
+Files to modify:
+- README.md (update threshold mention from 0.40 to 0.25)
+
+Keep the change minimal and focused.
