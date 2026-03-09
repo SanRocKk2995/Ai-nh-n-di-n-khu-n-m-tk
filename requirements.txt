@@ -1,0 +1,14 @@
+flask
+opencv-python
+numpy
+onnxruntime
+insightface
+pillow
+scikit-learn
+scikit-image
+scipy
+tqdm
+requests
+matplotlib
+albumentations
+prettytable

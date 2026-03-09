@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Face Verification System</title>
+  <meta name="description" content="1:1 Face Verification — upload two photos to check if they belong to the same person." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ── Background orbs ─────────────────────────────────────── -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- ── Main container ──────────────────────────────────────── -->
+  <main class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="18" r="9" stroke="url(#g1)" stroke-width="2.5"/>
+          <path d="M6 42c0-9.941 8.059-18 18-18s18 8.059 18 18" stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="35" cy="13" r="5" fill="url(#g2)" opacity="0.6"/>
+          <defs>
+            <linearGradient id="g1" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#818cf8"/>
+              <stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+            <linearGradient id="g2" x1="30" y1="8" x2="40" y2="18" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f472b6"/>
+              <stop offset="1" stop-color="#818cf8"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>FaceVerify AI</span>
+      </div>
+      <h1 class="title">Face Verification</h1>
+      <p class="subtitle">Upload two face images to check if they belong to the same person</p>
+    </header>
+
+    <!-- Upload form -->
+    <form id="verifyForm" enctype="multipart/form-data" novalidate>
+      <div class="upload-grid">
+
+        <!-- Image 1 -->
+        <div class="upload-card" id="card1">
+          <input type="file" id="image1" name="image1" accept="image/*" hidden />
+          <label for="image1" class="upload-label" id="label1">
+            <div class="upload-placeholder" id="placeholder1">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 5.75 5.75 0 0 1 6.097 6.853A4.5 4.5 0 0 1 17.25 19.5H6.75z"/>
+                </svg>
+              </div>
+              <p class="upload-hint">Click to upload</p>
+              <span class="upload-sub">Person A</span>
+            </div>
+            <img id="preview1" class="preview-img hidden" alt="Preview 1" />
+          </label>
+          <p class="card-label">Image 1 — Person A</p>
+        </div>
+
+        <!-- VS divider -->
+        <div class="vs-divider">
+          <div class="vs-line"></div>
+          <span class="vs-text">VS</span>
+          <div class="vs-line"></div>
+        </div>
+
+        <!-- Image 2 -->
+        <div class="upload-card" id="card2">
+          <input type="file" id="image2" name="image2" accept="image/*" hidden />
+          <label for="image2" class="upload-label" id="label2">
+            <div class="upload-placeholder" id="placeholder2">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 5.75 5.75 0 0 1 6.097 6.853A4.5 4.5 0 0 1 17.25 19.5H6.75z"/>
+                </svg>
+              </div>
+              <p class="upload-hint">Click to upload</p>
+              <span class="upload-sub">Person B</span>
+            </div>
+            <img id="preview2" class="preview-img hidden" alt="Preview 2" />
+          </label>
+          <p class="card-label">Image 2 — Person B</p>
+        </div>
+      </div>
+
+      <!-- Advanced options (collapsed) -->
+      <details class="advanced-panel">
+        <summary>Advanced Options</summary>
+        <div class="advanced-grid">
+          <label class="opt-label">
+            Threshold
+            <input type="number" id="threshold" name="threshold" value="0.25" min="0" max="1" step="0.01" />
+            <span class="opt-hint">0–1. Default: 0.25</span>
+          </label>
+          <label class="opt-label">
+            Multiple Faces
+            <select id="multi_face" name="multi_face">
+              <option value="error">Reject (error)</option>
+              <option value="largest" selected>Use largest face</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-verify" id="btnVerify" disabled>
+        <span class="btn-text">Verify Faces</span>
+        <span class="btn-spinner hidden" id="btnSpinner">
+          <svg class="spinner-svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
+                    fill="none" stroke-dasharray="60" stroke-dashoffset="20"
+                    stroke-linecap="round"/>
+          </svg>
+          Processing…
+        </span>
+      </button>
+    </form>
+
+    <!-- Result panel -->
+    <section class="result-panel hidden" id="resultPanel" role="region" aria-live="polite">
+      <div class="result-badge" id="resultBadge">
+        <span id="resultIcon">✓</span>
+        <span id="resultText">MATCH</span>
+      </div>
+
+      <div class="score-block">
+        <div class="score-label">Similarity Score</div>
+        <div class="score-value" id="scoreValue">0.00%</div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" id="scoreBarFill"></div>
+        </div>
+        <div class="score-meta">
+          Raw cosine score: <span id="rawScore">0.0000</span> &nbsp;|&nbsp;
+          Threshold: <span id="thresholdDisplay">0.25</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error panel -->
+    <section class="error-panel hidden" id="errorPanel" role="alert">
+      <span class="error-icon">⚠</span>
+      <p id="errorMessage">An error occurred.</p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Powered by <strong>InsightFace</strong> + <strong>Flask</strong> &nbsp;·&nbsp; Logs saved to <code>logs/comparisons.csv</code>
+    </footer>
+
+  </main>
+
+  <script>
+    // ── Image preview ───────────────────────────────────────────
+    function setupPreview(inputId, previewId, placeholderId, cardId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      const placeholder = document.getElementById(placeholderId);
+      const card = document.getElementById(cardId);
+
+      input.addEventListener("change", () => {
+        const file = input.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        preview.src = url;
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+        card.classList.add("has-image");
+        checkEnableButton();
+      });
+    }
+
+    setupPreview("image1", "preview1", "placeholder1", "card1");
+    setupPreview("image2", "preview2", "placeholder2", "card2");
+
+    function checkEnableButton() {
+      const f1 = document.getElementById("image1").files[0];
+      const f2 = document.getElementById("image2").files[0];
+      document.getElementById("btnVerify").disabled = !(f1 && f2);
+    }
+
+    // ── Form submit ─────────────────────────────────────────────
+    document.getElementById("verifyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+
+      // Show spinner, hide results
+      document.getElementById("btnText") && (document.getElementById("btnText").classList.add("hidden"));
+      document.querySelector(".btn-text").classList.add("hidden");
+      document.getElementById("btnSpinner").classList.remove("hidden");
+      document.getElementById("btnVerify").disabled = true;
+      document.getElementById("resultPanel").classList.add("hidden");
+      document.getElementById("errorPanel").classList.add("hidden");
+
+      try {
+        const data = new FormData(form);
+        const resp = await fetch("/verify", { method: "POST", body: data });
+        const json = await resp.json();
+
+        if (json.error) {
+          showError(json.error);
+        } else {
+          showResult(json);
+        }
+      } catch (err) {
+        showError("Network error: " + err.message);
+      } finally {
+        document.querySelector(".btn-text").classList.remove("hidden");
+        document.getElementById("btnSpinner").classList.add("hidden");
+        document.getElementById("btnVerify").disabled = false;
+      }
+    });
+
+    function showResult(data) {
+      const panel = document.getElementById("resultPanel");
+      const badge = document.getElementById("resultBadge");
+      const icon  = document.getElementById("resultIcon");
+      const text  = document.getElementById("resultText");
+      const scoreVal = document.getElementById("scoreValue");
+      const rawScore = document.getElementById("rawScore");
+      const barFill  = document.getElementById("scoreBarFill");
+      const threshDisp = document.getElementById("thresholdDisplay");
+
+      const isMatch = data.match;
+      badge.className = "result-badge " + (isMatch ? "badge-match" : "badge-no-match");
+      icon.textContent = isMatch ? "✓" : "✕";
+      text.textContent = data.result;
+
+      scoreVal.textContent = data.score_pct.toFixed(2) + "%";
+      rawScore.textContent = data.score.toFixed(4);
+      threshDisp.textContent = data.threshold;
+
+      // Animate bar
+      barFill.style.width = "0%";
+      barFill.className = "score-bar-fill " + (isMatch ? "bar-match" : "bar-no-match");
+      setTimeout(() => {
+        barFill.style.width = data.score_pct.toFixed(2) + "%";
+      }, 50);
+
+      panel.classList.remove("hidden");
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function showError(msg) {
+      document.getElementById("errorMessage").textContent = msg;
+      document.getElementById("errorPanel").classList.remove("hidden");
+      document.getElementById("errorPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  </script>
+</body>
+</html>

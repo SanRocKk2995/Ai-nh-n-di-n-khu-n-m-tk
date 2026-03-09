@@ -1,0 +1,41 @@
+=====================================
+ Antigravity — Codex Implementation Log
+ Date: 2026-03-09
+=====================================
+
+AGENT: Antigravity (acting as Codex implementation worker)
+TASK:  Build face verification system (1:1 face comparison)
+
+------ IMPLEMENTATION SUMMARY ------
+
+All modules implemented successfully.
+
+FILES CREATED:
+  [NEW]  modules/__init__.py
+  [NEW]  modules/face_detector.py     — InsightFace buffalo_sc detection + crop
+  [NEW]  modules/face_embedder.py     — 512-d normalised embedding extraction
+  [NEW]  modules/comparator.py        — cosine similarity + threshold decision
+  [NEW]  modules/logger.py            — CSV logging to logs/comparisons.csv
+  [NEW]  modules/utils.py             — file validation, save_upload, cleanup
+  [NEW]  app.py                       — Flask app with GET / and POST /verify
+  [NEW]  requirements.txt             — flask, opencv-python, insightface, numpy, onnxruntime
+  [NEW]  templates/index.html         — dark glassmorphism UI, AJAX verify, image preview
+  [NEW]  static/style.css             — animated orbs, score bar, responsive layout
+  [NEW]  uploads/.gitkeep             — temp upload directory
+  [NEW]  results/.gitkeep             — results directory
+  [MODIFIED] README.md               — full installation, usage, API docs
+
+ALGORITHM PIPELINE:
+  Image A → detect_and_crop() → get_embedding() → emb_A
+  Image B → detect_and_crop() → get_embedding() → emb_B
+  cosine_similarity(emb_A, emb_B) ≥ threshold (0.40) → MATCH
+                                   < threshold         → NOT MATCH
+
+TESTS RUN: None (no test runner configured)
+
+REMAINING CONCERNS:
+  - InsightFace downloads ~350 MB model on first run (internet required)
+  - On Windows, onnxruntime-gpu can fail silently; CPUExecutionProvider is used
+  - For very small face crops, get_embedding() falls back to 112×112 resize
+
+EXIT CODE: 0

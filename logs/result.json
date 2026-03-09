@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "workflow": "antigravity -> codex -> copilot",
+  "date": "2026-03-09",
+  "steps": [
+    {
+      "name": "implement",
+      "agent": "codex",
+      "log": "logs/codex.out",
+      "exit_code": 0,
+      "files_changed": 12
+    },
+    {
+      "name": "review",
+      "agent": "copilot",
+      "log": "logs/copilot.out",
+      "exit_code": 0,
+      "issues_found": 8,
+      "blocking_issues": 0,
+      "recommendation": "approved"
+    }
+  ],
+  "decision": "proceed",
+  "next_step": "user_verification"
+}

@@ -1,0 +1,45 @@
+=====================================
+ Copilot CLI — Code Review Log
+ Date: 2026-03-09
+=====================================
+
+AGENT: Copilot (review worker)
+SCOPE: All modules and Flask app
+
+------ REVIEW SUMMARY ------
+
+Overall: ACCEPTABLE — no blocking issues found. Minor improvements noted.
+
+------ REVIEW FINDINGS ------
+
+1. [LOW] face_embedder.py — fallback resize to 112×112 may discard quality.
+   Suggestion: Log a warning when fallback is triggered so the user knows.
+   
+2. [LOW] app.py — MAX_CONTENT_LENGTH (16 MB) is per-request, not per-file.
+   Two files submitted together count together. This is fine for face photos.
+
+3. [MEDIUM] comparator.py — threshold default 0.40 is appropriate for buffalo_sc.
+   However, the value is hardcoded in two places (DEFAULT_THRESHOLD and verify()).
+   Suggestion: Import DEFAULT_THRESHOLD inside verify() directly — already done ✓
+
+4. [LOW] logger.py — CSV append mode may produce duplicate headers if the file
+   is manually edited between runs. Current _ensure_header() check is safe.
+
+5. [LOW] utils.py — cleanup_file() silences all OSError. Consider at least
+   logging these errors in debug mode to aid troubleshooting.
+
+6. [LOW] index.html — btn-text span referenced by ID ("btnText") in JS but
+   the selector used is ".btn-text" class. Both selectors present; no bug.
+
+7. [MEDIUM] app.py — no CSRF protection on POST /verify.
+   Acceptable for a local tool; add flask-wtf if exposing externally.
+
+8. [LOW] Security — uploads/ directory is never served publicly (no static route),
+   so uploaded images cannot be accessed after cleanup. ✓ Good.
+
+------ RECOMMENDATION ------
+
+Another Codex pass: NOT REQUIRED
+Status: APPROVED FOR USE
+
+EXIT CODE: 0
